@@ -1,20 +1,20 @@
 package com.example.keovecities
 
-import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.PersistableBundle
 import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.ImageButton
 import android.widget.Spinner
+import android.widget.Toast
+import androidx.core.content.ContextCompat.startActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.keovecities.models.CityModel
 import com.example.keovecities.api.ApiService
 import com.example.keovecities.api.ApiUrl
+import com.example.keovecities.extension.isValidToken
 import com.example.keovecities.models.GuestAuthModel
 import retrofit2.Call
 import retrofit2.Callback
@@ -22,8 +22,6 @@ import retrofit2.Response
 import retrofit2.Retrofit
 
 class MainActivity : AppCompatActivity() {
-
-
 
     lateinit var spinner : Spinner
     lateinit var recyclerViewCities : RecyclerView
@@ -35,24 +33,12 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
 
-       /* Defaults.USERTOKEN = ""
-        val mySPrefs = applicationContext.getSharedPreferences("cinedb", 0)
-        val editor = mySPrefs.edit()
-        editor.remove("token")
-        editor.apply()
-        logout*/
-
-
-        Defaults().TOKEN=""
-        val pref = applicationContext.getSharedPreferences("koeveCities", 0)
-        val tkn = pref.getString("token", "")
-        if (tkn!!.isNotEmpty()) {
-            Defaults().TOKEN = "Bearer " + pref.getString("token", "")
-            getData(Defaults().TOKEN)
+        if (!Defaults.ISGUEST!!) {
+             getData()
         }
         else{
-            getGuestAuth(pref)
-            getData(Defaults().TOKEN)
+            getGuestAuth()
+            getData()
         }
 
         spinner= findViewById(R.id.spinner)
@@ -69,34 +55,31 @@ class MainActivity : AppCompatActivity() {
         recyclerViewCities.layoutManager = LinearLayoutManager(this)
 
 
-
-
     }
-    fun getData(token : String) {
-        val retrofit: Retrofit = ApiUrl().getClient()
-        val apiService = retrofit.create(ApiService::class.java).also {
+    fun getData() {
 
-            it.getCities(token).enqueue( object :Callback<List<CityModel>>{
-                override fun onResponse(
-                    call: Call<List<CityModel>>?,
-                    response: Response<List<CityModel>>?
-                ) {
-                    recyclerViewCities.adapter = AdapterRecyclerCities(response!!.body(),this@MainActivity)
-                }
+            val retrofit: Retrofit = ApiUrl().getClient(this)
+            val apiService = retrofit.create(ApiService::class.java).also {
 
-                override fun onFailure(call: Call<List<CityModel>>?, t: Throwable?) {
-                    Log.e("Response", ": " + t.toString())
-                }
+                it.getCities(Defaults.TOKEN).enqueue( object :Callback<List<CityModel>>{
+                    override fun onResponse(
+                        call: Call<List<CityModel>>?,
+                        response: Response<List<CityModel>>?
+                    ) {
+                        recyclerViewCities.adapter = AdapterRecyclerCities(response!!.body(),this@MainActivity)
+                    }
 
-            })
+                    override fun onFailure(call: Call<List<CityModel>>?, t: Throwable?) {
+                        Log.e("Response", ": " + t.toString())
+                    }
+
+                })
+            }
         }
-    }
 
-      fun getGuestAuth(pref : SharedPreferences){
+    fun getGuestAuth(){
 
-        val editor = pref.edit()
-
-            val retrofit: Retrofit = ApiUrl().getClient()
+            val retrofit: Retrofit = ApiUrl().getClient(this)
             val apiService = retrofit.create(ApiService::class.java).also {
 
                 it.getGuestAuth().enqueue( object :Callback<GuestAuthModel>{
@@ -104,10 +87,8 @@ class MainActivity : AppCompatActivity() {
                         call: Call<GuestAuthModel>?,
                         response: Response<GuestAuthModel>?
                     ) {
-                        val guestToken = response!!.body().token
-                        editor.putString("guestToken", guestToken).apply()
-                        Defaults().TOKEN = "Bearer " + guestToken
-                        Log.e("token", ": "+ Defaults().TOKEN )
+                        Defaults().setSpData(this@MainActivity, response!!.body().token, response.body().refreshToken, response.body().id, response.body().isGuest, System.currentTimeMillis()
+                        )
                     }
 
                     override fun onFailure(call: Call<GuestAuthModel>?, t: Throwable?) {
@@ -116,12 +97,32 @@ class MainActivity : AppCompatActivity() {
 
                 })
             }
-   }
+
+
+        }
 
 
     fun userImageBtnClick(view: android.view.View) {
-        val intent = Intent(this, LogInActivity::class.java)
-        startActivity(intent)
+        if(Defaults.ISGUEST!!){
+            val intent = Intent(this, LogInActivity::class.java)
+            startActivity(intent)
+        }else{
+             val pref = applicationContext.getSharedPreferences("keoveCities", 0)
+             val editor = pref.edit()
+             editor.remove("token")
+             editor.remove("refreshToken")
+             editor.remove("id")
+             editor.remove("isGuest")
+             Defaults.ID =0
+             Defaults.ISGUEST= true
+             Defaults.TOKEN= ""
+             Defaults.REFRESHTOKEN=""
+             editor.apply()
+             Toast.makeText(this@MainActivity, "Log out.", Toast.LENGTH_SHORT).show()
+
+        }
+
     }
+
 
 }

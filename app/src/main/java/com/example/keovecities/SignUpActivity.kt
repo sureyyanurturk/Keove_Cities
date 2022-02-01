@@ -4,20 +4,19 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import com.example.keovecities.api.ApiService
 import com.example.keovecities.api.ApiUrl
-import com.example.keovecities.models.UserLoginModel
 import com.example.keovecities.models.UserSignUpModel
+import com.example.keovecities.models.UserSignUpResponseModel
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 
-class SignUpActivity : AppCompatActivity(), View.OnClickListener {
+class SignUpActivity : AppCompatActivity() {
 
     lateinit var signUpBtn : Button
     lateinit var userNameEdit : EditText
@@ -31,7 +30,7 @@ class SignUpActivity : AppCompatActivity(), View.OnClickListener {
         userNameEdit = findViewById(R.id.userNameEdit)
         passwordEdit = findViewById(R.id.passwordEdit)
 
-        signUpBtn.setOnClickListener(this)
+
     }
 
     fun logInClick(view: android.view.View) {
@@ -39,33 +38,38 @@ class SignUpActivity : AppCompatActivity(), View.OnClickListener {
         startActivity(intent)
     }
 
-    override fun onClick(v: View?) {
-        val pref = applicationContext.getSharedPreferences("koeveCities", 0)
-        val editor = pref.edit()
 
-            val retrofit: Retrofit = ApiUrl().getClient()
-            val apiService = retrofit.create(ApiService::class.java).also {
+    fun onClickSignUp(view: android.view.View) {
 
-                it.getUserSignUp(userNameEdit.text.toString(),passwordEdit.text.toString()).enqueue( object : Callback<UserSignUpModel> {
-                    override fun onResponse(
-                        call: Call<UserSignUpModel>?,
-                        response: Response<UserSignUpModel>?
-                    ) {
-                        val signUpToken = response!!.body().token
-                        editor.putString("signUpToken", signUpToken).apply()
-                        Defaults().SIGNUPTOKEN = "Bearer " + signUpToken
-                        Log.e("signUpToken", ": "+ Defaults().SIGNUPTOKEN )
+        val requestBody = UserSignUpModel(userNameEdit.text.toString(), passwordEdit.text.toString())
+
+        val retrofit: Retrofit = ApiUrl().getClient(this)
+        val apiService = retrofit.create(ApiService::class.java).also {
+
+            it.getUserSignUp(Defaults.TOKEN,requestBody).enqueue( object : Callback<UserSignUpResponseModel> {
+                override fun onResponse(
+                    call: Call<UserSignUpResponseModel>?,
+                    response: Response<UserSignUpResponseModel>?
+                ) {
+                    if ( response != null && response.code() == 200 ){
+                        Defaults().setSpData(this@SignUpActivity, response.body().token,response.body().refreshToken,response.body().id,response.body().isGuest,System.currentTimeMillis())
                         Toast.makeText(this@SignUpActivity, "Başarılı bir şekilde üye olundu.", Toast.LENGTH_LONG).show()
                         val intent = Intent(this@SignUpActivity, LogInActivity::class.java)
                         startActivity(intent)
+                    }else if(response != null && response.code() == 409){
+                        Toast.makeText(this@SignUpActivity, "Kullanıcı zaten bulunmaktadır.", Toast.LENGTH_LONG).show()
+                    }else{
+                        Toast.makeText(this@SignUpActivity, "Network Error", Toast.LENGTH_LONG).show()
                     }
 
-                    override fun onFailure(call: Call<UserSignUpModel>?, t: Throwable?) {
-                        Log.e("Response", ": " + t.toString())
-                    }
+                }
 
-                })
-            }
+                override fun onFailure(call: Call<UserSignUpResponseModel>?, t: Throwable?) {
+                    Log.e("Response", ": " + t.toString())
+                }
+
+            })
         }
-
     }
+
+}

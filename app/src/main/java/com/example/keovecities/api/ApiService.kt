@@ -9,18 +9,19 @@ interface ApiService {
      @POST("/guest/auth")
      fun getGuestAuth(): Call<GuestAuthModel>
 
+     @POST("/refresh-token")
+     fun getRefreshToken(@Body requestRefreshBody : RefreshTokenModel): Call<RefreshTokenResponseModel>
 
      @POST("/user/login")
-     fun getUserLogin(): Call<UserLoginModel>
+     fun getUserLogin(@Header("Authorization") token : String,@Body requestBody : UserLoginModel ): Call<UserLoginResponseModel>
 
-     @FormUrlEncoded
      @POST("/user/sign-up")
-     fun getUserSignUp(@Field("username") username: String, @Field("password") password : String): Call<UserSignUpModel>
+     fun getUserSignUp(@Header("Authorization") token : String,@Body requestBody : UserSignUpModel): Call<UserSignUpResponseModel>
 
      @GET("/api/City")
      fun getCities(@Header("Authorization") token : String): Call<List<CityModel>>
 
      @GET("/api/City/{cityId}/districts")
-     fun getDistrict(@Path("cityId") cityId: Int): Call<List<DistrictModel>>
+     fun getDistrict(@Header("Authorization") token : String, @Path("cityId") cityId: Int): Call<List<DistrictModel>>
 
 }

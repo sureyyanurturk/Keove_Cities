@@ -26,13 +26,6 @@ class AdapterRecyclerDistrict(private var data: List<DistrictModel>, var context
         list[position].name.let {
             holder.districtText.text = it
         }
-       /* holder.districtCard.setOnClickListener(View.OnClickListener {
-            val bundle = Bundle()
-            bundle.putInt("id", list[position].id)
-            val intent = Intent(context, CityDetailsActivity::class.java)
-            context.startActivity(intent)
-        })
-*/
 
     }
 

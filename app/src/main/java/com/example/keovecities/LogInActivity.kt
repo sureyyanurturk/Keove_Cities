@@ -11,6 +11,7 @@ import android.widget.Toast
 import com.example.keovecities.api.ApiService
 import com.example.keovecities.api.ApiUrl
 import com.example.keovecities.models.UserLoginModel
+import com.example.keovecities.models.UserLoginResponseModel
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -41,29 +42,22 @@ class LogInActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     override fun onClick(v: View?) {
-        val pref = applicationContext.getSharedPreferences("koeveCities", 0)
-        val editor = pref.edit()
+        val requestBody = UserLoginModel(userNameEdit.text.toString(), passwordEdit.text.toString())
 
-        val retrofit: Retrofit = ApiUrl().getClient()
+        val retrofit: Retrofit = ApiUrl().getClient(this)
         val apiService = retrofit.create(ApiService::class.java).also {
 
-            it.getUserLogin().enqueue( object :Callback<UserLoginModel>{
+            it.getUserLogin(Defaults.TOKEN,requestBody).enqueue( object :Callback<UserLoginResponseModel>{
                 override fun onResponse(
-                    call: Call<UserLoginModel>?,
-                    response: Response<UserLoginModel>?
+                    call: Call<UserLoginResponseModel>?,
+                    response: Response<UserLoginResponseModel>?
                 ) {
 
-                 /*   val logInToken = response!!.body().token
-                    editor.putString("logInToken", logInToken).apply()
-                    Defaults().TOKEN = "Bearer " + logInToken
-                    Log.e("token", ": "+ Defaults().TOKEN )*/
-                    if (response!!.body().username == userNameEdit.text.toString().trim() && response.body().password == passwordEdit.text.toString().trim())   {
-                        // val bundle= Bundle()
-                        // bundle.putString("logInToken",logInToken)
+                    if (response!!.code() ==200 )   {
+
+                        Defaults().setSpData(this@LogInActivity,response.body().token,response.body().refreshToken,response.body().id,response.body().isGuest,System.currentTimeMillis())
                         Toast.makeText(this@LogInActivity, "Başarılı.", Toast.LENGTH_SHORT).show()
                         val intent = Intent(this@LogInActivity, MainActivity::class.java)
-                        //intent.putExtras(bundle)
-
                         startActivity(intent)
                     }
                     else {
@@ -71,7 +65,7 @@ class LogInActivity : AppCompatActivity(), View.OnClickListener {
                     }
                 }
 
-                override fun onFailure(call: Call<UserLoginModel>?, t: Throwable?) {
+                override fun onFailure(call: Call<UserLoginResponseModel>?, t: Throwable?) {
                     Log.e("Response", ": " + t.toString())
                 }
 

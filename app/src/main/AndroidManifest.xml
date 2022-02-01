@@ -12,9 +12,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.KeoveCities">
         <activity
-            android:name=".FavoriteActivity"
-            android:exported="false" />
-        <activity
             android:name=".CityDetailsActivity"
             android:exported="false" />
         <activity
